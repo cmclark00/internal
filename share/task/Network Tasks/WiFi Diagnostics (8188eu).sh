@@ -41,12 +41,51 @@ echo "" | tee -a "$DIAG_LOG"
 
 # Check if USB WiFi adapter is plugged in
 echo "=== USB Device Detection ===" | tee -a "$DIAG_LOG"
+echo "All USB devices:" | tee -a "$DIAG_LOG"
+lsusb | tee -a "$DIAG_LOG"
+echo "" | tee -a "$DIAG_LOG"
 if lsusb | grep -i "Realtek"; then
 	echo "[OK] Realtek USB device detected:" | tee -a "$DIAG_LOG"
 	lsusb | grep -i "Realtek" | tee -a "$DIAG_LOG"
 else
 	echo "[WARN] No Realtek USB device detected" | tee -a "$DIAG_LOG"
 	echo "       Please ensure USB WiFi adapter is plugged in" | tee -a "$DIAG_LOG"
+fi
+echo "" | tee -a "$DIAG_LOG"
+
+# Check USB device binding
+echo "=== USB Driver Binding ===" | tee -a "$DIAG_LOG"
+if [ -d "/sys/bus/usb/drivers/r8188eu" ]; then
+	echo "r8188eu USB driver directory exists" | tee -a "$DIAG_LOG"
+	echo "Bound devices:" | tee -a "$DIAG_LOG"
+	ls -la /sys/bus/usb/drivers/r8188eu/ 2>&1 | tee -a "$DIAG_LOG"
+else
+	echo "[ERROR] r8188eu USB driver directory NOT found" | tee -a "$DIAG_LOG"
+fi
+echo "" | tee -a "$DIAG_LOG"
+
+# Check wireless device registration
+echo "=== Wireless Device Registration ===" | tee -a "$DIAG_LOG"
+if [ -d "/sys/class/ieee80211" ]; then
+	echo "IEEE 802.11 devices:" | tee -a "$DIAG_LOG"
+	ls -la /sys/class/ieee80211/ 2>&1 | tee -a "$DIAG_LOG"
+else
+	echo "[ERROR] No IEEE 802.11 devices registered" | tee -a "$DIAG_LOG"
+fi
+echo "" | tee -a "$DIAG_LOG"
+
+# Check for firmware files
+echo "=== Firmware Check ===" | tee -a "$DIAG_LOG"
+if [ -d "/lib/firmware/rtlwifi" ]; then
+	echo "RTL firmware directory contents:" | tee -a "$DIAG_LOG"
+	ls -la /lib/firmware/rtlwifi/ 2>&1 | tee -a "$DIAG_LOG"
+else
+	echo "[WARN] /lib/firmware/rtlwifi directory not found" | tee -a "$DIAG_LOG"
+fi
+if [ -f "/lib/firmware/rtlwifi/rtl8188eufw.bin" ]; then
+	echo "[OK] rtl8188eufw.bin firmware found" | tee -a "$DIAG_LOG"
+else
+	echo "[WARN] rtl8188eufw.bin firmware NOT found" | tee -a "$DIAG_LOG"
 fi
 echo "" | tee -a "$DIAG_LOG"
 
@@ -137,10 +176,27 @@ else
 fi
 echo "" | tee -a "$DIAG_LOG"
 
+# Check module parameters
+echo "=== Module Parameters ===" | tee -a "$DIAG_LOG"
+if [ -d "/sys/module/$NET_NAME/parameters" ]; then
+	echo "r8188eu module parameters:" | tee -a "$DIAG_LOG"
+	for param in /sys/module/$NET_NAME/parameters/*; do
+		[ -f "$param" ] && echo "$(basename "$param") = $(cat "$param" 2>/dev/null)" | tee -a "$DIAG_LOG"
+	done
+else
+	echo "[WARN] Module parameters directory not found" | tee -a "$DIAG_LOG"
+fi
+echo "" | tee -a "$DIAG_LOG"
+
 # Check kernel ring buffer for recent WiFi/USB messages
 echo "=== Recent Kernel Messages (dmesg) ===" | tee -a "$DIAG_LOG"
 echo "Recent rtl8188eu/USB/WiFi messages:" | tee -a "$DIAG_LOG"
-dmesg | grep -iE "rtl8188|r8188|usb.*1-|wlan|80211" | tail -30 | tee -a "$DIAG_LOG"
+dmesg | grep -iE "rtl8188|r8188|usb.*1-|wlan|80211|firmware" | tail -50 | tee -a "$DIAG_LOG"
+echo "" | tee -a "$DIAG_LOG"
+
+# Get full dmesg for complete analysis
+echo "=== FULL dmesg output ===" | tee -a "$DIAG_LOG"
+dmesg | tee -a "$DIAG_LOG"
 echo "" | tee -a "$DIAG_LOG"
 
 # Check rfkill status
