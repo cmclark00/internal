@@ -9,8 +9,13 @@
 
 FRONTEND stop
 
-DIAG_LOG="/tmp/wifi_diagnostics.log"
+# Save to persistent storage with timestamp
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+DIAG_LOG="/opt/muos/log/wifi_diagnostics_${TIMESTAMP}.log"
 rm -f "$DIAG_LOG"
+
+# Also create a symlink to the latest for easy access
+DIAG_LATEST="/opt/muos/log/wifi_diagnostics_latest.log"
 
 echo "==================================================================" | tee -a "$DIAG_LOG"
 echo "WiFi Diagnostics for rtl8188eu USB Adapter" | tee -a "$DIAG_LOG"
@@ -183,8 +188,16 @@ echo "Diagnostics Complete!" | tee -a "$DIAG_LOG"
 echo "==================================================================" | tee -a "$DIAG_LOG"
 echo "" | tee -a "$DIAG_LOG"
 echo "Full diagnostic log saved to: $DIAG_LOG" | tee -a "$DIAG_LOG"
-echo "You can view it by running: cat $DIAG_LOG" | tee -a "$DIAG_LOG"
 echo "" | tee -a "$DIAG_LOG"
+echo "To access this log:" | tee -a "$DIAG_LOG"
+echo "1. Mount your SD card on a PC" | tee -a "$DIAG_LOG"
+echo "2. Navigate to the MUOS partition (usually second partition)" | tee -a "$DIAG_LOG"
+echo "3. Look in: opt/muos/log/wifi_diagnostics_*.log" | tee -a "$DIAG_LOG"
+echo "" | tee -a "$DIAG_LOG"
+
+# Create symlink to latest log
+ln -sf "$DIAG_LOG" "$DIAG_LATEST"
+
 echo "Press any key to return to muOS..."
 read -r
 
