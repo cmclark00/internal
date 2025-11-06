@@ -25,11 +25,29 @@ LOG_INFO "$0" 0 "SSID-SCAN" "$(printf "Setting '%s' device up" "$IFCE")"
 ip link set dev "$IFCE" up
 
 LOG_INFO "$0" 0 "SSID-SCAN" "Scanning for networks..."
-timeout 15 iw dev "$IFCE" scan |
-	grep "SSID:" |
-	sed 's/^[[:space:]]*SSID: //' |
-	grep -v '^\\x00' |
-	sort -u |
-	HEX_ESCAPE >"$NET_SCAN"
+
+# Check if we need to use wireless extensions (rk* devices with staging driver)
+BOARD_NAME=$(GET_VAR "device" "board/name")
+case "$BOARD_NAME" in
+	rk*)
+		# Use wireless extensions (iwlist) for staging r8188eu driver
+		timeout 15 iwlist "$IFCE" scan 2>/dev/null |
+			grep "ESSID:" |
+			sed 's/^[[:space:]]*ESSID:"//' |
+			sed 's/"$//' |
+			grep -v '^$' |
+			sort -u |
+			HEX_ESCAPE >"$NET_SCAN"
+		;;
+	*)
+		# Use nl80211 (iw) for modern drivers
+		timeout 15 iw dev "$IFCE" scan 2>/dev/null |
+			grep "SSID:" |
+			sed 's/^[[:space:]]*SSID: //' |
+			grep -v '^\\x00' |
+			sort -u |
+			HEX_ESCAPE >"$NET_SCAN"
+		;;
+esac
 
 [ ! -s "$NET_SCAN" ] && printf "[!]" >"$NET_SCAN"

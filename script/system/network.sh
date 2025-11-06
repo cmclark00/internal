@@ -90,8 +90,17 @@ TRY_CONNECT() {
 
 		WAIT_CARRIER=20
 		while [ "$WAIT_CARRIER" -gt 0 ]; do
-			if iw dev "$IFCE" link | grep "SSID:"; then
-				break
+			# Check WiFi association - use appropriate tool based on driver
+			if [ "$DRIV" = "wext" ]; then
+				# Wireless extensions - check for "ESSID" and not "off/any"
+				if iwconfig "$IFCE" 2>/dev/null | grep -q 'ESSID:"[^"]'; then
+					break
+				fi
+			else
+				# nl80211 - use iw command
+				if iw dev "$IFCE" link 2>/dev/null | grep -q "SSID:"; then
+					break
+				fi
 			fi
 			LOG_WARN "$0" 0 "NETWORK" "Waiting for Wi-Fi Association... (%ds)" "$WAIT_CARRIER"
 			WAIT_CARRIER=$((WAIT_CARRIER - 1))
