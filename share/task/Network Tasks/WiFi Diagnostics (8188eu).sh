@@ -210,7 +210,33 @@ echo "" | tee -a "$DIAG_LOG"
 
 # Show loaded modules
 echo "=== All Loaded WiFi-Related Modules ===" | tee -a "$DIAG_LOG"
-lsmod | grep -iE "8188|8821|cfg80211|mac80211" | tee -a "$DIAG_LOG"
+lsmod | grep -iE "8188|8821|cfg80211|mac80211|wireless" | tee -a "$DIAG_LOG"
+echo "" | tee -a "$DIAG_LOG"
+
+# Check if cfg80211 is available
+echo "=== Wireless Stack Check ===" | tee -a "$DIAG_LOG"
+if lsmod | grep -q cfg80211; then
+	echo "[OK] cfg80211 module is loaded" | tee -a "$DIAG_LOG"
+elif [ -f "/lib/modules/$(uname -r)/kernel/net/wireless/cfg80211.ko" ]; then
+	echo "[WARN] cfg80211 module exists but not loaded, attempting to load..." | tee -a "$DIAG_LOG"
+	modprobe cfg80211 2>&1 | tee -a "$DIAG_LOG"
+else
+	echo "[INFO] cfg80211 might be built into kernel or not available" | tee -a "$DIAG_LOG"
+fi
+
+# Try wireless extensions as fallback
+echo "" | tee -a "$DIAG_LOG"
+echo "=== Wireless Extensions Test (fallback) ===" | tee -a "$DIAG_LOG"
+if command -v iwconfig >/dev/null 2>&1; then
+	echo "Testing with iwconfig (wireless extensions):" | tee -a "$DIAG_LOG"
+	iwconfig "$NET_IFACE" 2>&1 | tee -a "$DIAG_LOG"
+	echo "" | tee -a "$DIAG_LOG"
+
+	echo "Attempting scan with iwlist:" | tee -a "$DIAG_LOG"
+	iwlist "$NET_IFACE" scan 2>&1 | tee -a "$DIAG_LOG"
+else
+	echo "[INFO] iwconfig/iwlist not available" | tee -a "$DIAG_LOG"
+fi
 echo "" | tee -a "$DIAG_LOG"
 
 # Recent log files
