@@ -92,9 +92,14 @@ TRY_CONNECT() {
 		while [ "$WAIT_CARRIER" -gt 0 ]; do
 			# Check WiFi association - use appropriate tool based on driver
 			if [ "$DRIV" = "wext" ]; then
-				# Wireless extensions - check for "ESSID" and not "off/any"
-				if iwconfig "$IFCE" 2>/dev/null | grep -q 'ESSID:"[^"]'; then
-					break
+				# Wireless extensions - check if associated (not "unassociated" and has ESSID)
+				IWCONFIG_OUT=$(iwconfig "$IFCE" 2>/dev/null)
+				if echo "$IWCONFIG_OUT" | grep -qv "unassociated" && echo "$IWCONFIG_OUT" | grep -q 'ESSID:"'; then
+					# Also check that ESSID is not empty
+					if ! echo "$IWCONFIG_OUT" | grep -q 'ESSID:""'; then
+						LOG_INFO "$0" 0 "NETWORK" "WiFi Associated!"
+						break
+					fi
 				fi
 			else
 				# nl80211 - use iw command
