@@ -27,33 +27,41 @@ wpa_supplicant with nl80211: "Driver does not support authentication/association
 
 ## Solutions
 
-### Option 1: Install wpa_supplicant with WEXT Support (Recommended)
+### Option 1: Build wpa_supplicant with WEXT Support (Recommended)
 
-You need to compile wpa_supplicant 2.x with WEXT support enabled:
+**Complete build infrastructure is now included in this repository!**
 
-1. Download wpa_supplicant source (version 2.10 recommended):
-   ```
+See `third-party/wpa_supplicant/README.md` for full instructions.
+
+**Quick Start**:
+
+1. Download wpa_supplicant source:
+   ```bash
+   cd third-party/wpa_supplicant
    wget https://w1.fi/releases/wpa_supplicant-2.10.tar.gz
    tar -xzf wpa_supplicant-2.10.tar.gz
-   cd wpa_supplicant-2.10/wpa_supplicant
    ```
 
-2. Create `.config` file with WEXT enabled:
-   ```
-   cp defconfig .config
-   echo "CONFIG_DRIVER_WEXT=y" >> .config
-   echo "CONFIG_DRIVER_NL80211=y" >> .config
-   ```
-
-3. Compile:
-   ```
-   make
+2. Build (with cross-compiler for ARM64):
+   ```bash
+   export CROSS_COMPILE=aarch64-linux-gnu-
+   export STATIC=1
+   ./build.sh
    ```
 
-4. Install on device (backup original first):
+3. Install on device:
+   ```bash
+   # Copy binary to SD card MUOS partition, then on device:
+   mv /usr/sbin/wpa_supplicant /usr/sbin/wpa_supplicant.bak
+   cp /path/to/new/wpa_supplicant /usr/sbin/
+   chmod +x /usr/sbin/wpa_supplicant
    ```
-   cp wpa_supplicant /opt/muos/bin/wpa_supplicant
-   ```
+
+The build script automatically:
+- Configures with WEXT and nl80211 support
+- Optimizes for size
+- Verifies WEXT is enabled
+- Provides installation instructions
 
 ### Option 2: Use Different WiFi Adapter
 
