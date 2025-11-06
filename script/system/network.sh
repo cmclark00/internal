@@ -88,25 +88,29 @@ TRY_CONNECT() {
 
 		wpa_supplicant -B -i "$IFCE" -c "$WPA_CONFIG" -D "$DRIV"
 
+		BOARD_NAME=$(GET_VAR "device" "board/name")
 		WAIT_CARRIER=20
 		while [ "$WAIT_CARRIER" -gt 0 ]; do
-			# Check WiFi association - use appropriate tool based on driver
-			if [ "$DRIV" = "wext" ]; then
-				# Wireless extensions - check if associated (not "unassociated" and has ESSID)
-				IWCONFIG_OUT=$(iwconfig "$IFCE" 2>/dev/null)
-				if echo "$IWCONFIG_OUT" | grep -qv "unassociated" && echo "$IWCONFIG_OUT" | grep -q 'ESSID:"'; then
-					# Also check that ESSID is not empty
-					if ! echo "$IWCONFIG_OUT" | grep -q 'ESSID:""'; then
-						LOG_INFO "$0" 0 "NETWORK" "WiFi Associated!"
+			# Check WiFi association - rk* devices need wireless extensions tools
+			case "$BOARD_NAME" in
+				rk*)
+					# Wireless extensions - check if associated (not "unassociated" and has ESSID)
+					IWCONFIG_OUT=$(iwconfig "$IFCE" 2>/dev/null)
+					if echo "$IWCONFIG_OUT" | grep -qv "unassociated" && echo "$IWCONFIG_OUT" | grep -q 'ESSID:"'; then
+						# Also check that ESSID is not empty
+						if ! echo "$IWCONFIG_OUT" | grep -q 'ESSID:""'; then
+							LOG_INFO "$0" 0 "NETWORK" "WiFi Associated!"
+							break
+						fi
+					fi
+					;;
+				*)
+					# nl80211 - use iw command for modern drivers
+					if iw dev "$IFCE" link 2>/dev/null | grep -q "SSID:"; then
 						break
 					fi
-				fi
-			else
-				# nl80211 - use iw command
-				if iw dev "$IFCE" link 2>/dev/null | grep -q "SSID:"; then
-					break
-				fi
-			fi
+					;;
+			esac
 			LOG_WARN "$0" 0 "NETWORK" "Waiting for Wi-Fi Association... (%ds)" "$WAIT_CARRIER"
 			WAIT_CARRIER=$((WAIT_CARRIER - 1))
 			TBOX sleep 1
