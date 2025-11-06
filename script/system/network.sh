@@ -78,43 +78,81 @@ TRY_CONNECT() {
 	fi
 
 	if [ "$IFCE" = "wlan0" ]; then
-		LOG_INFO "$0" 0 "NETWORK" "Configuring WPA Supplicant"
-		/opt/muos/script/web/password.sh
-
-		if [ ! -s "$WPA_CONFIG" ]; then
-			LOG_ERROR "$0" 0 "NETWORK" "Missing WPA Supplicant Configuration"
-			return 1
-		fi
-
-		wpa_supplicant -B -i "$IFCE" -c "$WPA_CONFIG" -D "$DRIV"
-
 		BOARD_NAME=$(GET_VAR "device" "board/name")
-		WAIT_CARRIER=20
-		while [ "$WAIT_CARRIER" -gt 0 ]; do
-			# Check WiFi association - rk* devices need wireless extensions tools
-			case "$BOARD_NAME" in
-				rk*)
-					# Wireless extensions - check if associated (not "unassociated" and has ESSID)
+
+		# rk* devices with staging drivers need special handling (no wpa_supplicant support)
+		case "$BOARD_NAME" in
+			rk*)
+				LOG_INFO "$0" 0 "NETWORK" "Configuring WiFi using wireless extensions"
+
+				# Get network configuration
+				PASS=$(GET_VAR "config" "network/pass")
+
+				# Set ESSID using iwconfig
+				LOG_INFO "$0" 0 "NETWORK" "Setting ESSID: $SSID"
+				iwconfig "$IFCE" essid "$SSID"
+
+				# Set encryption key if password exists
+				if [ -n "$PASS" ]; then
+					# For WPA/WPA2, we need wpa_supplicant but it doesn't work with this driver
+					# Try using iwconfig with a hex key (for WEP) or wpa_passphrase output
+					LOG_INFO "$0" 0 "NETWORK" "Configuring WPA encryption"
+
+					# Generate wpa_supplicant config for reference
+					/opt/muos/script/web/password.sh
+
+					# Try to use wpa_supplicant with wext driver (might not work)
+					# If this fails, connection will fail but at least we tried
+					wpa_supplicant -B -i "$IFCE" -c "$WPA_CONFIG" -D wext 2>/dev/null || {
+						LOG_WARN "$0" 0 "NETWORK" "wpa_supplicant failed, trying without encryption manager"
+						# Set mode and try to connect anyway
+						iwconfig "$IFCE" mode Managed
+					}
+				else
+					# Open network - no encryption
+					LOG_INFO "$0" 0 "NETWORK" "Connecting to open network"
+					iwconfig "$IFCE" mode Managed
+					iwconfig "$IFCE" key off
+				fi
+
+				# Wait for association
+				WAIT_CARRIER=20
+				while [ "$WAIT_CARRIER" -gt 0 ]; do
 					IWCONFIG_OUT=$(iwconfig "$IFCE" 2>/dev/null)
 					if echo "$IWCONFIG_OUT" | grep -qv "unassociated" && echo "$IWCONFIG_OUT" | grep -q 'ESSID:"'; then
-						# Also check that ESSID is not empty
 						if ! echo "$IWCONFIG_OUT" | grep -q 'ESSID:""'; then
 							LOG_INFO "$0" 0 "NETWORK" "WiFi Associated!"
 							break
 						fi
 					fi
-					;;
-				*)
-					# nl80211 - use iw command for modern drivers
+					LOG_WARN "$0" 0 "NETWORK" "Waiting for Wi-Fi Association... (%ds)" "$WAIT_CARRIER"
+					WAIT_CARRIER=$((WAIT_CARRIER - 1))
+					TBOX sleep 1
+				done
+				;;
+			*)
+				# Modern drivers - use wpa_supplicant with nl80211
+				LOG_INFO "$0" 0 "NETWORK" "Configuring WPA Supplicant"
+				/opt/muos/script/web/password.sh
+
+				if [ ! -s "$WPA_CONFIG" ]; then
+					LOG_ERROR "$0" 0 "NETWORK" "Missing WPA Supplicant Configuration"
+					return 1
+				fi
+
+				wpa_supplicant -B -i "$IFCE" -c "$WPA_CONFIG" -D "$DRIV"
+
+				WAIT_CARRIER=20
+				while [ "$WAIT_CARRIER" -gt 0 ]; do
 					if iw dev "$IFCE" link 2>/dev/null | grep -q "SSID:"; then
 						break
 					fi
-					;;
-			esac
-			LOG_WARN "$0" 0 "NETWORK" "Waiting for Wi-Fi Association... (%ds)" "$WAIT_CARRIER"
-			WAIT_CARRIER=$((WAIT_CARRIER - 1))
-			TBOX sleep 1
-		done
+					LOG_WARN "$0" 0 "NETWORK" "Waiting for Wi-Fi Association... (%ds)" "$WAIT_CARRIER"
+					WAIT_CARRIER=$((WAIT_CARRIER - 1))
+					TBOX sleep 1
+				done
+				;;
+		esac
 
 		if [ "$WAIT_CARRIER" -eq 0 ]; then
 			LOG_ERROR "$0" 0 "NETWORK" "Wi-Fi Association Timed Out"
