@@ -36,7 +36,19 @@ if [ -n "$CROSS_COMPILE" ]; then
     echo -e "${YELLOW}Cross-compiling for ARM64/aarch64${NC}"
     export CC="${CROSS_COMPILE}gcc"
     export STRIP="${CROSS_COMPILE}strip"
+    export PKG_CONFIG="${CROSS_COMPILE}pkg-config"
+
+    # Point to ARM64 libraries
+    ARCH_TRIPLET="aarch64-linux-gnu"
+    export PKG_CONFIG_PATH="/usr/lib/${ARCH_TRIPLET}/pkgconfig:/usr/share/pkgconfig"
+    export PKG_CONFIG_LIBDIR="/usr/lib/${ARCH_TRIPLET}/pkgconfig"
+
+    # Set include and library paths for cross-compilation
+    export CFLAGS="${CFLAGS} -I/usr/include/${ARCH_TRIPLET}"
+    export LDFLAGS="${LDFLAGS} -L/usr/lib/${ARCH_TRIPLET}"
+
     echo "CC=${CC}"
+    echo "PKG_CONFIG_PATH=${PKG_CONFIG_PATH}"
 else
     echo -e "${YELLOW}Native compilation (may not work on rk-g350-v)${NC}"
     export CC="${CC:-gcc}"
@@ -44,8 +56,8 @@ else
 fi
 
 # Set compilation flags for size optimization
-export CFLAGS="-Os -ffunction-sections -fdata-sections"
-export LDFLAGS="-Wl,--gc-sections"
+export CFLAGS="${CFLAGS:-} -Os -ffunction-sections -fdata-sections"
+export LDFLAGS="${LDFLAGS:-} -Wl,--gc-sections"
 
 # Optionally build static binary (recommended for embedded systems)
 if [ "$STATIC" = "1" ]; then

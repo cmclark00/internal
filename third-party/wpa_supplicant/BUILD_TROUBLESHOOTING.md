@@ -2,6 +2,38 @@
 
 ## Common Build Errors and Solutions
 
+### Error: "openssl/opensslconf.h: No such file or directory" (Cross-Compilation)
+
+**Problem**: Cross-compiling but finding native OpenSSL headers instead of ARM64 headers.
+
+**Solution 1** - Install ARM64 OpenSSL development package:
+```bash
+# Ubuntu/Debian
+sudo apt-get install libssl-dev:arm64
+
+# Or more specifically:
+sudo dpkg --add-architecture arm64
+sudo apt-get update
+sudo apt-get install libssl-dev:arm64
+```
+
+**Solution 2** - Use the fixed build script (automatically sets correct paths):
+```bash
+# The build.sh now handles this automatically
+export CROSS_COMPILE=aarch64-linux-gnu-
+CONFIG_FILE=wpa_supplicant-minimal.config ./build.sh
+```
+
+**Solution 3** - Manual path fix:
+```bash
+export CROSS_COMPILE=aarch64-linux-gnu-
+export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig
+export PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig
+export CFLAGS="-I/usr/include/aarch64-linux-gnu"
+export LDFLAGS="-L/usr/lib/aarch64-linux-gnu"
+CONFIG_FILE=wpa_supplicant-minimal.config ./build.sh
+```
+
 ### Error: "tommath.h: No such file or directory"
 
 **Problem**: Configuration is set to use internal TLS which requires libtommath.
