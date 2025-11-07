@@ -6,7 +6,21 @@
 
 **Problem**: Pop!_OS repositories don't host ARM64 packages because Pop!_OS only runs on x86_64 systems.
 
-**Solution** - Configure Ubuntu Ports repository for ARM64 packages:
+**Solution 1 - Use internal crypto (RECOMMENDED - easiest)**:
+
+The simplest solution is to use wpa_supplicant's built-in crypto instead of OpenSSL:
+
+```bash
+export CROSS_COMPILE=aarch64-linux-gnu-
+export STATIC=1
+CONFIG_FILE=wpa_supplicant-internal.config ./build.sh
+```
+
+This requires NO ARM64 system libraries - just the cross-compiler! The internal crypto is fully functional for WPA/WPA2 authentication.
+
+**Solution 2 - Configure Ubuntu Ports repository for ARM64 packages**:
+
+If you specifically need OpenSSL (not required for rtl8188eu):
 
 ```bash
 # Run the provided fix script
@@ -28,6 +42,8 @@ sudo apt-get update
 # Now install ARM64 OpenSSL
 sudo apt-get install libssl-dev:arm64
 ```
+
+Note: Even after adding Ubuntu Ports, multi-arch OpenSSL installation can be problematic. Using internal crypto is more reliable.
 
 ### Error: "openssl/opensslconf.h: No such file or directory" (Cross-Compilation)
 

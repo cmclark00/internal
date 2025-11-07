@@ -23,10 +23,21 @@ sudo apt-get install build-essential pkg-config libnl-3-dev libnl-genl-3-dev \
 sudo dnf install gcc make pkgconfig libnl3-devel openssl-devel gcc-aarch64-linux-gnu
 ```
 
-**Minimal build** (if you don't want to install dependencies):
-- Use `wpa_supplicant-minimal.config` instead
-- Only requires OpenSSL (libssl-dev)
-- Smaller binary, fewer features
+**Build Configuration Options**:
+
+1. **wpa_supplicant.config** (full-featured):
+   - Requires: libnl-3, libnl-genl-3, OpenSSL, dbus
+   - Best for general use with all features
+
+2. **wpa_supplicant-minimal.config** (minimal with OpenSSL):
+   - Requires: OpenSSL (libssl-dev) only
+   - Good balance of features and dependencies
+
+3. **wpa_supplicant-internal.config** (zero dependencies) **← RECOMMENDED for Pop!_OS**:
+   - Uses internal crypto (no OpenSSL needed)
+   - Perfect for cross-compilation when ARM64 libraries aren't available
+   - Only needs cross-compiler (gcc-aarch64-linux-gnu)
+   - Fully functional for WPA/WPA2
 
 ## Download wpa_supplicant Source
 
@@ -46,15 +57,27 @@ tar -xzf wpa_supplicant-2.11.tar.gz
 
 ## Build Instructions
 
-### Option 1: Quick Build (if you have the right toolchain)
+### Option 1: Quick Build
 
+**Recommended for Pop!_OS (no ARM64 libraries needed)**:
 ```bash
-./build.sh
+export CROSS_COMPILE=aarch64-linux-gnu-
+export STATIC=1
+CONFIG_FILE=wpa_supplicant-internal.config ./build.sh
 ```
 
-Or for minimal build (fewer dependencies):
+**If you have ARM64 OpenSSL installed**:
 ```bash
+export CROSS_COMPILE=aarch64-linux-gnu-
+export STATIC=1
 CONFIG_FILE=wpa_supplicant-minimal.config ./build.sh
+```
+
+**Full-featured build**:
+```bash
+export CROSS_COMPILE=aarch64-linux-gnu-
+export STATIC=1
+./build.sh
 ```
 
 ### Option 2: Manual Build

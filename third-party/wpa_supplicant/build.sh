@@ -57,24 +57,32 @@ if [ -n "$CROSS_COMPILE" ]; then
     echo "PKG_CONFIG_PATH=${PKG_CONFIG_PATH}"
     echo
 
-    # Verify ARM64 OpenSSL is installed
-    if [ ! -f "/usr/include/${ARCH_TRIPLET}/openssl/ssl.h" ]; then
-        echo -e "${RED}ERROR: ARM64 OpenSSL development files not found!${NC}"
+    # Check if config uses internal crypto (no OpenSSL needed)
+    if grep -q "CONFIG_TLS=internal" "${CONFIG_FILE}"; then
+        echo -e "${GREEN}✓ Using internal crypto - no ARM64 libraries needed${NC}"
         echo
-        echo "The cross-compiler cannot find OpenSSL headers for ARM64."
-        echo "You need to install the ARM64 version of libssl-dev:"
+    else
+        # Verify ARM64 OpenSSL is installed for configs that need it
+        if [ ! -f "/usr/include/${ARCH_TRIPLET}/openssl/ssl.h" ]; then
+            echo -e "${RED}ERROR: ARM64 OpenSSL development files not found!${NC}"
+            echo
+            echo "The cross-compiler cannot find OpenSSL headers for ARM64."
+            echo
+            echo "Option 1: Install ARM64 OpenSSL (may not work on Pop!_OS):"
+            echo "  sudo dpkg --add-architecture arm64"
+            echo "  sudo apt-get update"
+            echo "  sudo apt-get install libssl-dev:arm64"
+            echo
+            echo "Option 2: Use internal crypto config (RECOMMENDED):"
+            echo "  CONFIG_FILE=wpa_supplicant-internal.config ./build.sh"
+            echo
+            echo "See BUILD_TROUBLESHOOTING.md for more details."
+            echo
+            exit 1
+        fi
+        echo -e "${GREEN}✓ ARM64 OpenSSL found${NC}"
         echo
-        echo "  sudo dpkg --add-architecture arm64"
-        echo "  sudo apt-get update"
-        echo "  sudo apt-get install libssl-dev:arm64"
-        echo
-        echo "See BUILD_TROUBLESHOOTING.md for more details."
-        echo
-        exit 1
     fi
-
-    echo -e "${GREEN}✓ ARM64 OpenSSL found${NC}"
-    echo
 else
     echo -e "${YELLOW}Native compilation (may not work on rk-g350-v)${NC}"
     export CC="${CC:-gcc}"
