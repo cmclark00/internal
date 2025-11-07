@@ -2,6 +2,33 @@
 
 ## Common Build Errors and Solutions
 
+### Error: "Package 'libssl-dev:arm64' has no installation candidate" (Pop!_OS)
+
+**Problem**: Pop!_OS repositories don't host ARM64 packages because Pop!_OS only runs on x86_64 systems.
+
+**Solution** - Configure Ubuntu Ports repository for ARM64 packages:
+
+```bash
+# Run the provided fix script
+./fix-arm64-repos.sh
+```
+
+Or manually:
+```bash
+# Create Ubuntu Ports source list for ARM64
+sudo tee /etc/apt/sources.list.d/ubuntu-ports-arm64.list << 'EOF'
+deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main restricted universe multiverse
+deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main restricted universe multiverse
+deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-security main restricted universe multiverse
+EOF
+
+# Update package lists
+sudo apt-get update
+
+# Now install ARM64 OpenSSL
+sudo apt-get install libssl-dev:arm64
+```
+
 ### Error: "openssl/opensslconf.h: No such file or directory" (Cross-Compilation)
 
 **Problem**: Cross-compiling but finding native OpenSSL headers instead of ARM64 headers.
