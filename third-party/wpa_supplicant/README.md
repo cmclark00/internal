@@ -10,6 +10,24 @@ The rtl8188eu staging driver in kernel 4.4.189 only supports the deprecated Wire
 
 You'll need a cross-compilation toolchain for ARM64/aarch64 that matches the muOS kernel version (4.4.189).
 
+### Install Build Dependencies
+
+**On Ubuntu/Debian**:
+```bash
+sudo apt-get install build-essential pkg-config libnl-3-dev libnl-genl-3-dev \
+                     libssl-dev gcc-aarch64-linux-gnu
+```
+
+**On Fedora/RHEL**:
+```bash
+sudo dnf install gcc make pkgconfig libnl3-devel openssl-devel gcc-aarch64-linux-gnu
+```
+
+**Minimal build** (if you don't want to install dependencies):
+- Use `wpa_supplicant-minimal.config` instead
+- Only requires OpenSSL (libssl-dev)
+- Smaller binary, fewer features
+
 ## Download wpa_supplicant Source
 
 Since we can't include the source directly, download it yourself:
@@ -32,6 +50,11 @@ tar -xzf wpa_supplicant-2.11.tar.gz
 
 ```bash
 ./build.sh
+```
+
+Or for minimal build (fewer dependencies):
+```bash
+CONFIG_FILE=wpa_supplicant-minimal.config ./build.sh
 ```
 
 ### Option 2: Manual Build

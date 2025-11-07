@@ -7,6 +7,7 @@ set -e
 WPA_VERSION="2.10"
 WPA_DIR="wpa_supplicant-${WPA_VERSION}"
 BUILD_DIR="${WPA_DIR}/wpa_supplicant"
+CONFIG_FILE="${CONFIG_FILE:-wpa_supplicant.config}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -16,6 +17,7 @@ NC='\033[0m' # No Color
 
 echo -e "${GREEN}=== wpa_supplicant Build Script ===${NC}"
 echo "Version: ${WPA_VERSION}"
+echo "Config: ${CONFIG_FILE}"
 echo
 
 # Check if source exists
@@ -53,7 +55,11 @@ fi
 
 echo
 echo -e "${GREEN}Step 1: Copying configuration${NC}"
-cp wpa_supplicant.config "${BUILD_DIR}/.config"
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo -e "${RED}Error: Configuration file '$CONFIG_FILE' not found!${NC}"
+    exit 1
+fi
+cp "$CONFIG_FILE" "${BUILD_DIR}/.config"
 
 echo -e "${GREEN}Step 2: Cleaning previous build${NC}"
 cd "$BUILD_DIR"
