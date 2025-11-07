@@ -2,21 +2,53 @@
 
 ## Common Build Errors and Solutions
 
-### Error: "Package 'libssl-dev:arm64' has no installation candidate" (Pop!_OS)
+### Error: "netlink/genl/genl.h: No such file or directory"
 
-**Problem**: Pop!_OS repositories don't host ARM64 packages because Pop!_OS only runs on x86_64 systems.
+**Problem**: The nl80211 driver requires netlink headers (libnl), but they're not installed or not found for cross-compilation.
 
-**Solution 1 - Use internal crypto (RECOMMENDED - easiest)**:
+**Solution 1 - Use WEXT-only config (RECOMMENDED for rtl8188eu)**:
 
-The simplest solution is to use wpa_supplicant's built-in crypto instead of OpenSSL:
+Since rtl8188eu only supports WEXT anyway, use the WEXT-only configuration that doesn't need nl80211 or libnl:
 
 ```bash
+export CROSS_COMPILE=aarch64-linux-gnu-
+export STATIC=1
+CONFIG_FILE=wpa_supplicant-wext-only.config ./build.sh
+```
+
+This requires NO system libraries at all - just the cross-compiler! Perfect for rtl8188eu.
+
+**Solution 2 - Install libnl headers (if you need nl80211)**:
+
+If you want to support both WEXT and nl80211 drivers (for multiple adapter types):
+
+```bash
+# Install native libnl headers
+sudo apt-get install libnl-3-dev libnl-genl-3-dev
+
+# Build with internal crypto config (dual drivers)
 export CROSS_COMPILE=aarch64-linux-gnu-
 export STATIC=1
 CONFIG_FILE=wpa_supplicant-internal.config ./build.sh
 ```
 
-This requires NO ARM64 system libraries - just the cross-compiler! The internal crypto is fully functional for WPA/WPA2 authentication.
+Note: For static cross-compilation, native (x86_64) libnl headers work fine.
+
+### Error: "Package 'libssl-dev:arm64' has no installation candidate" (Pop!_OS)
+
+**Problem**: Pop!_OS repositories don't host ARM64 packages because Pop!_OS only runs on x86_64 systems.
+
+**Solution 1 - Use WEXT-only config (RECOMMENDED - easiest)**:
+
+The simplest solution is to use the WEXT-only configuration with internal crypto:
+
+```bash
+export CROSS_COMPILE=aarch64-linux-gnu-
+export STATIC=1
+CONFIG_FILE=wpa_supplicant-wext-only.config ./build.sh
+```
+
+This requires NO ARM64 system libraries - just the cross-compiler! Perfect for rtl8188eu which only needs WEXT support.
 
 **Solution 2 - Configure Ubuntu Ports repository for ARM64 packages**:
 

@@ -25,19 +25,25 @@ sudo dnf install gcc make pkgconfig libnl3-devel openssl-devel gcc-aarch64-linux
 
 **Build Configuration Options**:
 
-1. **wpa_supplicant.config** (full-featured):
-   - Requires: libnl-3, libnl-genl-3, OpenSSL, dbus
-   - Best for general use with all features
+1. **wpa_supplicant-wext-only.config** (WEXT-only, zero dependencies) **← RECOMMENDED for rtl8188eu**:
+   - WEXT driver only (no nl80211 = no libnl needed)
+   - Uses internal crypto (no OpenSSL needed)
+   - Requires ONLY the cross-compiler (gcc-aarch64-linux-gnu)
+   - Perfect for rtl8188eu which only supports WEXT
+   - Fully functional for WPA/WPA2/WPA3
 
-2. **wpa_supplicant-minimal.config** (minimal with OpenSSL):
-   - Requires: OpenSSL (libssl-dev) only
+2. **wpa_supplicant-internal.config** (dual drivers, zero external dependencies):
+   - Both WEXT and nl80211 drivers (requires libnl headers)
+   - Uses internal crypto (no OpenSSL needed)
+   - Good if you want to support both old and new WiFi adapters
+
+3. **wpa_supplicant-minimal.config** (minimal with OpenSSL):
+   - Requires: OpenSSL (libssl-dev:arm64) and libnl (libnl-3-dev:arm64)
    - Good balance of features and dependencies
 
-3. **wpa_supplicant-internal.config** (zero dependencies) **← RECOMMENDED for Pop!_OS**:
-   - Uses internal crypto (no OpenSSL needed)
-   - Perfect for cross-compilation when ARM64 libraries aren't available
-   - Only needs cross-compiler (gcc-aarch64-linux-gnu)
-   - Fully functional for WPA/WPA2
+4. **wpa_supplicant.config** (full-featured):
+   - Requires: libnl-3, libnl-genl-3, OpenSSL, dbus (all :arm64)
+   - Best for general use with all features
 
 ## Download wpa_supplicant Source
 
@@ -59,22 +65,24 @@ tar -xzf wpa_supplicant-2.11.tar.gz
 
 ### Option 1: Quick Build
 
-**Recommended for Pop!_OS (no ARM64 libraries needed)**:
+**Recommended for rtl8188eu (WEXT-only, zero dependencies)**:
 ```bash
+export CROSS_COMPILE=aarch64-linux-gnu-
+export STATIC=1
+CONFIG_FILE=wpa_supplicant-wext-only.config ./build.sh
+```
+
+**If you want both WEXT and nl80211 support**:
+```bash
+# Requires libnl headers: sudo apt-get install libnl-3-dev libnl-genl-3-dev
 export CROSS_COMPILE=aarch64-linux-gnu-
 export STATIC=1
 CONFIG_FILE=wpa_supplicant-internal.config ./build.sh
 ```
 
-**If you have ARM64 OpenSSL installed**:
-```bash
-export CROSS_COMPILE=aarch64-linux-gnu-
-export STATIC=1
-CONFIG_FILE=wpa_supplicant-minimal.config ./build.sh
-```
-
 **Full-featured build**:
 ```bash
+# Requires all ARM64 libraries
 export CROSS_COMPILE=aarch64-linux-gnu-
 export STATIC=1
 ./build.sh
