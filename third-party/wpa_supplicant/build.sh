@@ -36,23 +36,50 @@ if [ -n "$CROSS_COMPILE" ]; then
     echo -e "${YELLOW}Cross-compiling for ARM64/aarch64${NC}"
     export CC="${CROSS_COMPILE}gcc"
     export STRIP="${CROSS_COMPILE}strip"
-    export PKG_CONFIG="${CROSS_COMPILE}pkg-config"
+
+    # Use regular pkg-config but with ARM64 paths
+    # Note: Do NOT use ${CROSS_COMPILE}pkg-config as it doesn't exist
+    export PKG_CONFIG="pkg-config"
 
     # Point to ARM64 libraries
     ARCH_TRIPLET="aarch64-linux-gnu"
-    export PKG_CONFIG_PATH="/usr/lib/${ARCH_TRIPLET}/pkgconfig:/usr/share/pkgconfig"
+    export PKG_CONFIG_PATH="/usr/lib/${ARCH_TRIPLET}/pkgconfig"
     export PKG_CONFIG_LIBDIR="/usr/lib/${ARCH_TRIPLET}/pkgconfig"
+    export PKG_CONFIG_SYSROOT_DIR="/"
 
     # Set include and library paths for cross-compilation
-    export CFLAGS="${CFLAGS} -I/usr/include/${ARCH_TRIPLET}"
-    export LDFLAGS="${LDFLAGS} -L/usr/lib/${ARCH_TRIPLET}"
+    # These paths will be searched FIRST before system paths
+    export CFLAGS="${CFLAGS} -I/usr/include/${ARCH_TRIPLET} -I/usr/${ARCH_TRIPLET}/include"
+    export LDFLAGS="${LDFLAGS} -L/usr/lib/${ARCH_TRIPLET} -L/usr/${ARCH_TRIPLET}/lib"
 
     echo "CC=${CC}"
+    echo "PKG_CONFIG=${PKG_CONFIG}"
     echo "PKG_CONFIG_PATH=${PKG_CONFIG_PATH}"
+    echo
+
+    # Verify ARM64 OpenSSL is installed
+    if [ ! -f "/usr/include/${ARCH_TRIPLET}/openssl/ssl.h" ]; then
+        echo -e "${RED}ERROR: ARM64 OpenSSL development files not found!${NC}"
+        echo
+        echo "The cross-compiler cannot find OpenSSL headers for ARM64."
+        echo "You need to install the ARM64 version of libssl-dev:"
+        echo
+        echo "  sudo dpkg --add-architecture arm64"
+        echo "  sudo apt-get update"
+        echo "  sudo apt-get install libssl-dev:arm64"
+        echo
+        echo "See BUILD_TROUBLESHOOTING.md for more details."
+        echo
+        exit 1
+    fi
+
+    echo -e "${GREEN}✓ ARM64 OpenSSL found${NC}"
+    echo
 else
     echo -e "${YELLOW}Native compilation (may not work on rk-g350-v)${NC}"
     export CC="${CC:-gcc}"
     export STRIP="${STRIP:-strip}"
+    export PKG_CONFIG="pkg-config"
 fi
 
 # Set compilation flags for size optimization

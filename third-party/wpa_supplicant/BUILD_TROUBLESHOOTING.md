@@ -6,31 +6,30 @@
 
 **Problem**: Cross-compiling but finding native OpenSSL headers instead of ARM64 headers.
 
-**Solution 1** - Install ARM64 OpenSSL development package:
-```bash
-# Ubuntu/Debian
-sudo apt-get install libssl-dev:arm64
+This error occurs when you have the native (x86_64) OpenSSL development files installed, but not the ARM64 version. When cross-compiling, the build system needs the ARM64 headers, not the native ones.
 
-# Or more specifically:
+**Solution** - Install ARM64 OpenSSL development package (REQUIRED for cross-compilation):
+
+```bash
+# Ubuntu/Debian - Add ARM64 architecture support
 sudo dpkg --add-architecture arm64
 sudo apt-get update
+
+# Install ARM64 OpenSSL development files
 sudo apt-get install libssl-dev:arm64
+
+# Verify installation
+ls -l /usr/include/aarch64-linux-gnu/openssl/ssl.h
 ```
 
-**Solution 2** - Use the fixed build script (automatically sets correct paths):
-```bash
-# The build.sh now handles this automatically
-export CROSS_COMPILE=aarch64-linux-gnu-
-CONFIG_FILE=wpa_supplicant-minimal.config ./build.sh
-```
+After installing, the build script will automatically detect and use the correct ARM64 headers.
 
-**Solution 3** - Manual path fix:
+If you still have issues after installing, try cleaning your previous build:
 ```bash
+cd wpa_supplicant-2.10/wpa_supplicant
+make clean
+cd ../..
 export CROSS_COMPILE=aarch64-linux-gnu-
-export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig
-export PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig
-export CFLAGS="-I/usr/include/aarch64-linux-gnu"
-export LDFLAGS="-L/usr/lib/aarch64-linux-gnu"
 CONFIG_FILE=wpa_supplicant-minimal.config ./build.sh
 ```
 
